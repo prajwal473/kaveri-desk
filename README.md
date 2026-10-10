@@ -1,7 +1,8 @@
 # Kaveri Desk — Agentic AI Supply-Chain Assistant
 **Cypher 2026 Hackathon • Challenge 01: "The Spare Parts Desk"**
 
-[![CI](https://github.com/kaveri-spares/kaveri-desk/actions/workflows/ci.yml/badge.svg)](https://github.com/kaveri-spares/kaveri-desk/actions/workflows/ci.yml)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fprajwal473%2Fkaveri-desk)
+[![GitHub](https://img.shields.io/badge/GitHub-prajwal473%2Fkaveri--desk-blue?logo=github)](https://github.com/prajwal473/kaveri-desk)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
 > An autonomous supply-chain decision agent built for **Kaveri Spares & Hydraulics** across North Karnataka (Belgaum, Gokak, Hubli, Dharwad, Bagalkot, Vijayapura, Hubli Central WH, and Belgaum WH).
