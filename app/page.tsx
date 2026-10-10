@@ -45,16 +45,19 @@ export default function TodayScreen() {
 
   const handleQuickApprove = async (issue: EngineIssue) => {
     const actionToApprove = issue.drafted_actions[0];
-    if (!actionToApprove) return;
 
     try {
       const res = await fetch('/api/agent/actions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          actionId: actionToApprove.id,
+          actionId: actionToApprove?.id,
+          sku: issue.sku,
+          location: issue.location,
+          type: actionToApprove?.type || 'PO_DRAFT',
           decision: 'approve',
           reason: `Approved recommendation: ${issue.chosen_option.name}`,
+          payload: actionToApprove?.payload,
         }),
       });
       const data = await res.json();
@@ -71,16 +74,19 @@ export default function TodayScreen() {
   const handleConfirmReject = async (reason: string) => {
     if (!rejectingIssue) return;
     const actionToReject = rejectingIssue.drafted_actions[0];
-    if (!actionToReject) return;
 
     try {
       const res = await fetch('/api/agent/actions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          actionId: actionToReject.id,
+          actionId: actionToReject?.id,
+          sku: rejectingIssue.sku,
+          location: rejectingIssue.location,
+          type: actionToReject?.type || 'PO_DRAFT',
           decision: 'reject',
           reason,
+          payload: actionToReject?.payload,
         }),
       });
       const data = await res.json();
@@ -88,6 +94,7 @@ export default function TodayScreen() {
 
       showToast(`Action rejected. Reason recorded: "${reason}". Runner-up option ready.`, 'info');
       setLastDecidedActionId(data.action?.id || null);
+      setRejectingIssue(null);
       await runAgent();
     } catch (err: any) {
       showToast(err.message, 'error');

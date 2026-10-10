@@ -66,16 +66,19 @@ export default function IssueDetailPage() {
 
   const handleApprove = async () => {
     const action = issue.drafted_actions[0];
-    if (!action) return;
     setIsApproving(true);
     try {
       const res = await fetch('/api/agent/actions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          actionId: action.id,
+          actionId: action?.id,
+          sku: issue.sku,
+          location: issue.location,
+          type: action?.type || 'PO_DRAFT',
           decision: 'approve',
           reason: `Approved recommendation: ${issue.chosen_option.name}`,
+          payload: action?.payload,
         }),
       });
       const data = await res.json();
@@ -94,21 +97,24 @@ export default function IssueDetailPage() {
 
   const handleRejectConfirm = async (reason: string) => {
     const action = issue.drafted_actions[0];
-    if (!action) return;
     try {
       const res = await fetch('/api/agent/actions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          actionId: action.id,
+          actionId: action?.id,
+          sku: issue.sku,
+          location: issue.location,
+          type: action?.type || 'PO_DRAFT',
           decision: 'reject',
           reason,
+          payload: action?.payload,
         }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to reject');
 
-      showToast(`Action rejected. Reason logged: "${reason}".`, 'info');
+      showToast(`Action rejected. Reason logged: "${reason}". Runner-up option ready.`, 'info');
       setLastDecidedActionId(data.action?.id || null);
       await runAgent();
       router.push('/');

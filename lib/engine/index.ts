@@ -43,6 +43,13 @@ export interface AgentRunParams {
   storeMessages: RawStoreMessage[];
   asOf?: Date;
   config?: EngineConfig;
+  rejectedActions?: Array<{
+    sku: string;
+    location: string;
+    type: string;
+    supplier?: string;
+    reason?: string | null;
+  }>;
 }
 
 /**
@@ -64,6 +71,7 @@ export function runAgentLoop(params: AgentRunParams): AgentRunResult {
     storeMessages,
     asOf = new Date(),
     config = DEFAULT_CONFIG,
+    rejectedActions = [],
   } = params;
 
   const steps: AgentRunResult['steps'] = [];
@@ -153,8 +161,11 @@ export function runAgentLoop(params: AgentRunParams): AgentRunResult {
       config
     );
     const skuSuppliers = suppliers.filter((s) => s.sku === raw.sku);
+    const rejectedForThisIssue = rejectedActions.filter(
+      (r) => r.sku === raw.sku && r.location === raw.location
+    );
 
-    const decision = decideBestOption(raw, skuDonors, skuSuppliers, config);
+    const decision = decideBestOption(raw, skuDonors, skuSuppliers, config, rejectedForThisIssue);
     const drafted = generateDraftedActions(raw, decision.chosenOption, asOf);
 
     // Grounded explanation citing numbers

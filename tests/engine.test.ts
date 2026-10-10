@@ -296,4 +296,61 @@ describe('Kaveri Desk Deterministic Reasoning Engine', () => {
     expect(result.allIssues.length).toBe(0);
     expect(result.top3Issues.length).toBe(0);
   });
+
+  it('8. Rejection Handling: When human rejects primary option, engine offers the runner-up option next', () => {
+    const products = [
+      { sku: 'HF-210', name: 'Hydraulic Filter HF-210', machine_model: 'JCB 3DX', category: 'Filters' },
+    ];
+    const inventory = [
+      { sku: 'HF-210', location: 'Gokak', stock: 8 },
+      { sku: 'HF-210', location: 'Belgaum', stock: 12 },
+    ];
+    const sales = [
+      ...generateSales('HF-210', 'Gokak', 4, 28),
+      ...generateSales('HF-210', 'Belgaum', 1, 28),
+    ];
+    const suppliers = [
+      { supplier: 'Shree Hydro', sku: 'HF-210', price: 420, lead_time_days: 7, moq: 20 },
+      { supplier: 'Rapid Parts', sku: 'HF-210', price: 470, lead_time_days: 3, moq: 20 },
+    ];
+
+    // Primary run: Rapid Parts is chosen
+    const run1 = runAgentLoop({
+      products,
+      inventory,
+      sales,
+      suppliers,
+      purchaseOrders: [],
+      storeMessages: [],
+      asOf,
+    });
+    const issue1 = run1.allIssues.find((i) => i.sku === 'HF-210' && i.location === 'Gokak');
+    expect(issue1?.chosen_option.supplier).toBe('Rapid Parts');
+
+    // Human rejects Rapid Parts with reason 'Price premium too high'
+    const run2 = runAgentLoop({
+      products,
+      inventory,
+      sales,
+      suppliers,
+      purchaseOrders: [],
+      storeMessages: [],
+      asOf,
+      rejectedActions: [
+        {
+          sku: 'HF-210',
+          location: 'Gokak',
+          type: 'PO_DRAFT',
+          supplier: 'Rapid Parts',
+          reason: 'Price premium too high',
+        },
+      ],
+    });
+
+    const issue2 = run2.allIssues.find((i) => i.sku === 'HF-210' && i.location === 'Gokak');
+    expect(issue2).toBeDefined();
+    // Runner-up Shree Hydro is now the chosen option!
+    expect(issue2?.chosen_option.supplier).toBe('Shree Hydro');
+    expect(issue2?.options.find((o) => o.supplier === 'Rapid Parts')?.feasible).toBe(false);
+  });
 });

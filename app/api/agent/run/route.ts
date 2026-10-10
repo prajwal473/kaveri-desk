@@ -13,32 +13,6 @@ export async function POST(req: NextRequest) {
 
     const result = await executeAgent(asOf, role, userLocation);
 
-    // Sync generated actions into Action table if they don't already exist
-    for (const drafted of result.draftedActions) {
-      const existing = await db.action.findFirst({
-        where: {
-          sku: drafted.sku,
-          location: drafted.location,
-          type: drafted.type,
-          status: 'pending',
-        },
-      });
-
-      if (!existing) {
-        await db.action.create({
-          data: {
-            type: drafted.type,
-            sku: drafted.sku,
-            location: drafted.location,
-            payload: JSON.stringify(drafted.payload),
-            status: 'pending',
-            reason: drafted.reason,
-            priority: drafted.priority,
-          },
-        });
-      }
-    }
-
     // Record AGENT_RUN in AuditLog
     await db.auditLog.create({
       data: {

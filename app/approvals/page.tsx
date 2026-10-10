@@ -56,19 +56,28 @@ export default function ApprovalsPage() {
 
   const handleSingleApprove = async (action: any) => {
     try {
+      let payloadObj = action.payload;
+      if (typeof payloadObj === 'string') {
+        try { payloadObj = JSON.parse(payloadObj); } catch {}
+      }
+
       const res = await fetch('/api/agent/actions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           actionId: action.id,
+          sku: action.sku,
+          location: action.location,
+          type: action.type,
           decision: 'approve',
           reason: 'Approved via Approval Queue',
+          payload: payloadObj,
         }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
 
-      showToast(`Action approved: ${action.title}`, 'success');
+      showToast(`Action approved: ${action.title || action.sku}`, 'success');
       setLastDecidedActionId(action.id);
       await fetchActions();
       await runAgent();
@@ -83,13 +92,23 @@ export default function ApprovalsPage() {
     let count = 0;
     try {
       for (const id of Array.from(selectedIds)) {
+        const item = actions.find((a) => a.id === id);
+        let payloadObj = item?.payload;
+        if (typeof payloadObj === 'string') {
+          try { payloadObj = JSON.parse(payloadObj); } catch {}
+        }
+
         await fetch('/api/agent/actions', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             actionId: id,
+            sku: item?.sku,
+            location: item?.location,
+            type: item?.type,
             decision: 'approve',
             reason: 'Bulk approved by Purchasing Head',
+            payload: payloadObj,
           }),
         });
         count++;
@@ -108,19 +127,28 @@ export default function ApprovalsPage() {
   const handleConfirmReject = async (reason: string) => {
     if (!rejectingAction) return;
     try {
+      let payloadObj = rejectingAction.payload;
+      if (typeof payloadObj === 'string') {
+        try { payloadObj = JSON.parse(payloadObj); } catch {}
+      }
+
       const res = await fetch('/api/agent/actions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           actionId: rejectingAction.id,
+          sku: rejectingAction.sku,
+          location: rejectingAction.location,
+          type: rejectingAction.type,
           decision: 'reject',
           reason,
+          payload: payloadObj,
         }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
 
-      showToast(`Action rejected: ${rejectingAction.title}`, 'info');
+      showToast(`Action rejected: ${rejectingAction.title || rejectingAction.sku}`, 'info');
       setLastDecidedActionId(rejectingAction.id);
       await fetchActions();
       await runAgent();

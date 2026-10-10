@@ -5,6 +5,14 @@ import { EngineConfig, DEFAULT_CONFIG } from './config';
 import { NetworkSurplus } from './types';
 import { RawSupplier } from './detectors';
 
+export interface RejectedActionRecord {
+  sku: string;
+  location: string;
+  type: string;
+  supplier?: string;
+  reason?: string | null;
+}
+
 /**
  * Evaluates all options for an issue, selects the lowest-cost feasible option,
  * identifies runner-up with the explicit business rationale for why it lost,
@@ -14,7 +22,8 @@ export function decideBestOption(
   rawIssue: DetectedRawIssue,
   surplusDonors: NetworkSurplus[],
   suppliers: RawSupplier[],
-  config: EngineConfig = DEFAULT_CONFIG
+  config: EngineConfig = DEFAULT_CONFIG,
+  rejectedActions: RejectedActionRecord[] = []
 ): {
   options: EvaluatedOption[];
   chosenOption: EvaluatedOption;
@@ -34,6 +43,29 @@ export function decideBestOption(
     suppliers,
     config,
   });
+
+  // Filter or flag options that were rejected by user
+  if (rejectedActions && rejectedActions.length > 0) {
+    for (const opt of options) {
+      const rejMatch = rejectedActions.find((rej) => {
+        if (rej.type === 'TRANSFER' && opt.type === 'TRANSFER') return true;
+        if (
+          rej.type === 'PO_DRAFT' &&
+          (opt.type === 'PO_FAST' || opt.type === 'PO_STANDARD')
+        ) {
+          if (!rej.supplier || rej.supplier === opt.supplier) return true;
+        }
+        return false;
+      });
+
+      if (rejMatch) {
+        opt.feasible = false;
+        opt.infeasible_reason = rejMatch.reason
+          ? `Rejected by user decision: "${rejMatch.reason}"`
+          : 'Previously rejected by human decision.';
+      }
+    }
+  }
 
   // Filter feasible options. If none feasible, fallback to all options.
   const feasibleOptions = options.filter((o) => o.feasible);
