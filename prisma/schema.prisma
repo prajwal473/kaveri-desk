@@ -1,0 +1,103 @@
+// Kaveri Desk Prisma Schema
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Product {
+  sku           String   @id
+  name          String
+  machine_model String
+  category      String
+  created_at    DateTime @default(now())
+
+  inventory     Inventory[]
+  sales         Sales[]
+  suppliers     Supplier[]
+  purchaseOrders PurchaseOrder[]
+}
+
+model Inventory {
+  id       Int     @id @default(autoincrement())
+  sku      String
+  location String  // store or warehouse
+  stock    Int
+
+  product  Product @relation(fields: [sku], references: [sku], onDelete: Cascade)
+
+  @@unique([sku, location])
+}
+
+model Sales {
+  id        Int      @id @default(autoincrement())
+  date      DateTime
+  sku       String
+  location  String
+  qty_sold  Int
+
+  product   Product  @relation(fields: [sku], references: [sku], onDelete: Cascade)
+
+  @@index([sku, location, date])
+}
+
+model Supplier {
+  id             Int     @id @default(autoincrement())
+  supplier       String
+  sku            String
+  price          Float
+  lead_time_days Int
+  moq            Int
+
+  product        Product @relation(fields: [sku], references: [sku], onDelete: Cascade)
+
+  @@unique([supplier, sku])
+}
+
+model PurchaseOrder {
+  po            String   @id
+  supplier      String
+  sku           String
+  qty           Int
+  expected_date DateTime
+  status        String   // open, overdue, received, draft, approved, rejected
+  created_at    DateTime @default(now())
+
+  product       Product  @relation(fields: [sku], references: [sku], onDelete: Cascade)
+}
+
+model Action {
+  id         String    @id @default(cuid())
+  type       String    // PO_DRAFT, TRANSFER, SUPPLIER_ENQUIRY, ALERT
+  sku        String
+  location   String
+  payload    String    // JSON encoded details
+  status     String    @default("pending") // pending, approved, rejected
+  reason     String?
+  priority   Float     @default(0)
+  created_at DateTime  @default(now())
+  decided_at DateTime?
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  action_type String   // AGENT_RUN, ACTION_APPROVED, ACTION_REJECTED, ACTION_UNDONE, SCENARIO_RESET, DATA_IMPORT
+  details     String   // JSON encoded
+  actor       String   // e.g. "Ramesh Kulkarni (Purchasing Head)", "Store Manager (Belgaum)", "System Agent"
+  created_at  DateTime @default(now())
+}
+
+model StoreMessage {
+  id       Int      @id @default(autoincrement())
+  location String
+  message  String
+  date     DateTime
+}
+
+model SystemConfig {
+  key   String @id
+  value String
+}
